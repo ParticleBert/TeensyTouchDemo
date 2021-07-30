@@ -6,23 +6,45 @@
 
 // GUItool: begin automatically generated code
 AudioControlSGTL5000      	sgtl5000;
-AudioOutputI2S            	i2saudio;
-AudioSynthWaveformSine    	sine1;          //xy=1324.9999999999998,366.66666666666663
-AudioSynthWaveformModulated	waveformMod1;
-AudioSynthNoiseWhite		noise1;
-AudioOutputAnalog         	dac1;           //xy=1590,354
-AudioEffectReverb         	reverb1;
-AudioMixer4					mixer1;
-AudioMixer4               	mixer2;
 
 
-AudioConnection           	patchCord3(reverb1, i2saudio);
-// Mixer 1
-AudioConnection				patchCord5(wafeformMod1, 0, mixer1, 0);	// waveformMod 1 in channel 0
-AudioConnection				patchCord4(noise1, 0, mixer1, 1);		// noise in channel 1
-// Mixer 2
-AudioConnection           	patchCord1(sine1, 0, mixer2, 0);		// Input
-AudioConnection           	patchCord2(mixer2, 0, reverb1, 0);		// Output	
+AudioSynthWaveformModulated	waveformMod2; // WaveformMod 2
+AudioSynthNoiseWhite		    noise1;       // Noise 1
+AudioMixer4					        mixer1;       // Mixer 1
+AudioFilterStateVariable    filter1;      // Filter 1
+AudioSynthWaveformSine      sine1;        // Sine (Test)
+AudioMixer4               	mixer2;       // Mixer 2
+AudioAmplifier              amp1;         // Amp1
+AudioSynthWaveformDc        dc1;
+AudioEffectMultiply         multiply1;    // Multiply
+AudioEffectReverb           reverb1;      // Reverb
+AudioOutputI2S              i2saudio;     // Output
+AudioOutputAnalog           dac1;         // Output
+
+// waveformMod1 and noise1 to Mixer 1
+AudioConnection				      patchCord5(waveformMod2, 0, mixer1, 0);	// waveformMod 1 in channel 0
+AudioConnection				      patchCord4(noise1, 0, mixer1, 1);		// noise in channel 1
+
+// Mixer 1 and Amp 2 to Filter 1
+AudioConnection             patchCord12(mixer1, 0, filter1, 0);
+// AudioConnection             patchCord13(amp2, 0, ladder1, 0);
+
+// Waveshape, Ladder and TestSine to Mixer 2
+AudioConnection             patchCord(filter1, 1, mixer2, 1);
+AudioConnection           	patchCord1(sine1, 0, mixer2, 2);
+
+// Mixer 2 and Amp 1 to Multiply
+AudioConnection             patchCord9(mixer2, 0, multiply1, 0);
+AudioConnection             patchCord11(dc1, 0, multiply1, 1);
+// AudioConnection             patchCord10(amp1, 0, multiply1, 1);
+
+// Multiply to Reverb
+AudioConnection             patchCord8(multiply1, reverb1);
+
+// Reverb1 to DAC and I2S
+AudioConnection             patchCord3(reverb1, 0, i2saudio, 0);
+AudioConnection             patchCord7(reverb1, 0, i2saudio, 1);
+AudioConnection             patchCord6(reverb1, dac1);
 
 // GUItool: end automatically generated code
 
@@ -62,19 +84,42 @@ AudioConnection          patchCord16(reverb1, dac1);
 // GUItool: end automatically generated code
 
 void setup() {
+  // Init serial
+  Serial.begin(9600);
+  // Init the CODEC
   sgtl5000.enable();
   sgtl5000.volume(0.5);
+  // Audio Memory
   AudioMemory(20);
-  // Sinewave
+
+  waveformMod2.begin(0.3, 150, WAVEFORM_SQUARE);
+  noise1.amplitude(0.3);
+
+  mixer1.gain(0,1);
+  mixer1.gain(1,1);
+
   sine1.frequency(440);
   sine1.amplitude(0.3);
-  // Mixer 2
   mixer2.gain(0,1);
+  mixer2.gain(1,1);
+  dc1.amplitude(1);
   // Reverb
   reverb1.reverbTime(0.2);
 }
 
 void loop() {
+  // Read the potis
+  float value_a7 = (float)analogRead(A7) / 1023;  // Norm to the range from 0 to 1
+  float value_a6 = (float)analogRead(A6) / 1023;  // Norm to the range from 0 to 1
+  float filter_cutoff = value_a7 * 20000;                    // Convert to Hertz (20kHz maximum)
+  float filter_reso = value_a6 * 5;                           // TODO Lower Limit of the Reso is 0.7
+                                                              // TODO The Filter amplifies at resos > 0.707. The inpus has to attenuated.
+  // Set the values
+  filter1.frequency(filter_cutoff);
+  filter1.resonance(filter_reso);
+  // Serial.println(value_a7);
+  // delay(1);
+  
   
 // VCO 01
 // waveformMod1 (vco) select waveform
@@ -92,8 +137,8 @@ void loop() {
 
 // FILTER
 // ladder1 init freq cut-off
-// ladder1 cut-off knob
-// ladder1 res knob
+// ladder1 cut-off knob       DONE
+// ladder1 res knob           DONE
 // amp2 attenuation (amount of envelope applied on cut-off)
 
 // DISTORTION
