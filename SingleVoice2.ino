@@ -31,7 +31,7 @@ AudioConnection         patchCord18(envelope1, 0, filter1, 1);
 AudioConnection          patchCord6(waveformMod2, 0, mixer1, 0);
 AudioConnection          patchCord7(noise1, 0, mixer1, 1);
 AudioConnection          patchCord8(mixer1, 0, filter1, 0);
-AudioConnection          patchCord9(amp2, 0, filter1, 1);
+// AudioConnection          patchCord9(amp2, 0, filter1, 1);
 AudioConnection          patchCord10(filter1, 0, waveshape1, 0);
 AudioConnection          patchCord11(filter1, 1, mixer2, 1);
 AudioConnection          patchCord12(waveshape1, 0, mixer2, 0);
