@@ -6,31 +6,42 @@
 
 // GUItool: begin automatically generated code
 AudioControlSGTL5000      	sgtl5000;
-
-
+AudioSynthWaveformModulated waveformMod1; // WaveformMod 1
 AudioSynthWaveformModulated	waveformMod2; // WaveformMod 2
+AudioEffectWaveshaper       waveshape1;  // Waveshaper 1
+AudioEffectEnvelope         envelope1;    // Envelope 1
 AudioSynthNoiseWhite		    noise1;       // Noise 1
 AudioMixer4					        mixer1;       // Mixer 1
 AudioFilterStateVariable    filter1;      // Filter 1
 AudioSynthWaveformSine      sine1;        // Sine (Test)
 AudioMixer4               	mixer2;       // Mixer 2
-AudioAmplifier              amp1;         // Amp1
+AudioAmplifier              amp1;         // Amp 1
+AudioAmplifier              amp2;         // Amp 2
+AudioAmplifier              amp3;         // Amp 3
 AudioSynthWaveformDc        dc1;
 AudioEffectMultiply         multiply1;    // Multiply
 AudioEffectReverb           reverb1;      // Reverb
 AudioOutputI2S              i2saudio;     // Output
 AudioOutputAnalog           dac1;         // Output
+// Connections
+AudioConnection             patchCord13(waveformMod1, amp3);
+AudioConnection             patchCord14(waveformMod1, envelope1);
+AudioConnection             patchCord15(amp3, 0, waveformMod2, 0);
+AudioConnection             patchCord39(envelope1, amp1);
+AudioConnection             patchCord37(envelope1, amp2);
 
-// waveformMod1 and noise1 to Mixer 1
+
 AudioConnection				      patchCord5(waveformMod2, 0, mixer1, 0);	// waveformMod 1 in channel 0
 AudioConnection				      patchCord4(noise1, 0, mixer1, 1);		// noise in channel 1
 
 // Mixer 1 and Amp 2 to Filter 1
 AudioConnection             patchCord12(mixer1, 0, filter1, 0);
-// AudioConnection             patchCord13(amp2, 0, ladder1, 0);
+AudioConnection             patchCord35(amp2, 0, filter1, 0);
 
 // Waveshape, Ladder and TestSine to Mixer 2
-AudioConnection             patchCord(filter1, 1, mixer2, 1);
+AudioConnection             patchCord20(filter1, 1, mixer2, 1);
+AudioConnection             patchCord30(filter1, 0, waveshape1, 0);
+AudioConnection             patchCord40(waveshape1, 0, mixer2, 0);
 AudioConnection           	patchCord1(sine1, 0, mixer2, 2);
 
 // Mixer 2 and Amp 1 to Multiply
@@ -92,6 +103,8 @@ void setup() {
   // Audio Memory
   AudioMemory(20);
 
+  waveformMod1.begin(0.3, 200, WAVEFORM_TRIANGLE);
+
   waveformMod2.begin(0.3, 150, WAVEFORM_SQUARE);
   noise1.amplitude(0.3);
 
@@ -105,6 +118,7 @@ void setup() {
   dc1.amplitude(1);
   // Reverb
   reverb1.reverbTime(0.2);
+  envelope1.delay(200);
 }
 
 void loop() {
@@ -119,7 +133,11 @@ void loop() {
   filter1.resonance(filter_reso);
   // Serial.println(value_a7);
   // delay(1);
-  
+
+  envelope1.noteOn();
+  delay(1);
+  envelope1.noteOn();
+  delay(1);
   
 // VCO 01
 // waveformMod1 (vco) select waveform
