@@ -25,7 +25,7 @@ AudioConnection          patchCord1(waveformMod1, envelope1);
 AudioConnection          patchCord2(waveformMod1, amp3);
 AudioConnection          patchCord3(amp3, 0, waveformMod2, 0);
 AudioConnection          patchCord4(envelope1, amp1);
-AudioConnection          patchCord5(envelope1, amp2);
+// AudioConnection          patchCord5(envelope1, amp2);
 AudioConnection          patchCord6(waveformMod2, 0, mixer1, 0);
 AudioConnection          patchCord7(noise1, 0, mixer1, 1);
 AudioConnection          patchCord8(mixer1, 0, filter1, 0);
@@ -45,8 +45,8 @@ AudioControlSGTL5000     sgtl5000_1;     //xy=1710.4286041259766,391.57144165039
 
 // Debug
 AudioSynthWaveformDc      dc1;
-// AudioConnection          patchCord13(amp1, 0, multiply1, 1);
-AudioConnection           patchCord13(dc1, 0, multiply1, 1);
+AudioConnection          patchCord13(envelope1, 0, multiply1, 1);
+// AudioConnection           patchCord13(dc1, 0, multiply1, 1);
 
 Bounce button0 = Bounce(8, 15);
 
@@ -78,7 +78,8 @@ void setup() {
   dc1.amplitude(1);
   // Reverb
   reverb1.reverbTime(0.2);
-  envelope1.delay(200);
+  envelope1.attack(200);
+  envelope1.release(200);
 }
 
 void loop() {
@@ -95,11 +96,15 @@ void loop() {
                                                               // TODO The Filter amplifies at resos > 0.707. The inpus has to attenuated.
                                                               // But at the moment it's OK.
   float freq1 = value_a3 * 1000;
+  float attack1 = value_a2 * 2000;
+  float release1 = value_a1 * 2000;
   
   // Set the values
   filter1.frequency(filter_cutoff);
   filter1.resonance(filter_reso);
   waveformMod1.frequency(freq1);
+  envelope1.attack(attack1);
+  envelope1.release(release1);
   // Serial.println(value_a7);
   // delay(1);
 
@@ -108,7 +113,7 @@ void loop() {
     Serial.println("Envelope On");
   }
   if (button0.risingEdge() ) {
-    envelope1.noteOn();
+    envelope1.noteOff();
     Serial.println("Envelope Off");
   }
 
