@@ -25,6 +25,7 @@ AudioConnection          patchCord1(waveformMod1, envelope1);
 AudioConnection          patchCord2(waveformMod1, amp3);
 AudioConnection          patchCord3(amp3, 0, waveformMod2, 0);
 AudioConnection          patchCord4(envelope1, amp1);
+AudioConnection         patchCord18(envelope1, 0, filter1, 1);
 // AudioConnection          patchCord5(envelope1, amp2);
 AudioConnection          patchCord6(waveformMod2, 0, mixer1, 0);
 AudioConnection          patchCord7(noise1, 0, mixer1, 1);
@@ -51,7 +52,7 @@ AudioConnection          patchCord13(envelope1, 0, multiply1, 1);
 Bounce button0 = Bounce(8, 15);
 
 void setup() {
-  pinMode(8, INPUT_PULLUP);
+  pinMode(8, INPUT_PULLUP);   // This pin triggers the envelope
   
   // Init serial
   Serial.begin(9600);
