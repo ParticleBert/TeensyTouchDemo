@@ -17,6 +17,7 @@ AudioFilterStateVariable filter1;        //xy=895.0000152587891,277
 AudioEffectWaveshaper    waveshape1;     //xy=1047.2857360839844,233.28571319580078
 AudioAmplifier           amp1;           //xy=1197.857177734375,362.7142639160156
 AudioMixer4              mixer2;         //xy=1202.000015258789,285
+AudioMixer4             mixer3;
 AudioEffectMultiply      multiply1;      //xy=1397.000015258789,291
 AudioEffectReverb        reverb1;        //xy=1544.000015258789,291
 AudioOutputAnalog        dac2; //xy=1712.4285926818848,239.57141780853271
@@ -35,12 +36,13 @@ AudioConnection          patchCord10(filter1, 0, waveshape1, 0);
 AudioConnection          patchCord11(filter1, 1, mixer2, 1);
 AudioConnection          patchCord12(waveshape1, 0, mixer2, 0);
 AudioConnection          patchCord14(mixer2, 0, multiply1, 0);
-AudioConnection          patchCord16(multiply1, 0, i2s1,0 );
-AudioConnection          patchCord15(multiply1, 0, i2s1,1 );
-AudioConnection           patchCord17(multiply1, 0, dac2, 0);
+AudioConnection          patchCord16(multiply1, 0, mixer3, 0);
+AudioConnection          patchCord15(multiply1, reverb1);
+AudioConnection         patchCord19(reverb1, 0, mixer3, 1);
+AudioConnection           patchCord17(mixer3, 0, dac2, 0);
 // AudioConnection          patchCord16(reverb1, dac2);
-// AudioConnection          patchCord17(reverb1, 0, i2s1, 0);
-// AudioConnection          patchCord18(reverb1, 0, i2s1, 1);
+AudioConnection          patchCord20(mixer3, 0, i2s1, 0);
+AudioConnection          patchCord21(mixer3, 0, i2s1, 1);
 AudioControlSGTL5000     sgtl5000_1;     //xy=1710.4286041259766,391.5714416503906
 // GUItool: end automatically generated code
 
@@ -60,7 +62,7 @@ void setup() {
   sgtl5000_1.enable();
   sgtl5000_1.volume(0.5);
   // Audio Memory
-  AudioMemory(20);
+  AudioMemory(10);
   amp3.gain(1);
   amp2.gain(1);
   amp1.gain(1);
@@ -70,15 +72,17 @@ void setup() {
   noise1.amplitude(0.3);
 
   mixer1.gain(0,1);
-  mixer1.gain(1,0.3);
+  mixer1.gain(1,0.5);
 
   // sine1.frequency(440);
   // sine1.amplitude(0.3);
   mixer2.gain(0,1);
   mixer2.gain(1,1);
   dc1.amplitude(1);
+  mixer3.gain(0,0.9);
+  mixer3.gain(0,0.5);
   // Reverb
-  reverb1.reverbTime(0.2);
+  reverb1.reverbTime(0.5);
   envelope1.attack(200);
   envelope1.release(200);
 }
@@ -117,6 +121,7 @@ void loop() {
     envelope1.noteOff();
     Serial.println("Envelope Off");
   }
+  Serial.println(AudioMemoryUsageMax());
 
   
 // VCO 01
