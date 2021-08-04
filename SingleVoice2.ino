@@ -5,6 +5,10 @@
 #include <SerialFlash.h>
 #include <Bounce.h>
 
+#define MODULATOR_FREQ_LOWER 5    // This parameter sets the lower frequency (in Hertz) for the modulating oscillator
+#define MODULATOR_FREQ_UPPER 200  // This parameter sets the upper frequency (in Hertz) for the modulating oscillator
+                                  // TODO: What is the exact range of the AudioSynthWaveformModulated class?
+
 // GUItool: begin automatically generated code
 AudioSynthWaveformModulated waveformMod1;   //xy=165.57147216796875,267.857177734375
 AudioAmplifier           amp3;           //xy=367.4285888671875,216.85711669921875
@@ -44,14 +48,15 @@ AudioConnection           patchCord17(mixer3, 0, dac2, 0);
 AudioConnection          patchCord20(mixer3, 0, i2s1, 0);
 AudioConnection          patchCord21(mixer3, 0, i2s1, 1);
 AudioControlSGTL5000     sgtl5000_1;     //xy=1710.4286041259766,391.5714416503906
-// GUItool: end automatically generated code
 
 // Debug
 AudioSynthWaveformDc      dc1;
 AudioConnection          patchCord13(envelope1, 0, multiply1, 1);
 // AudioConnection           patchCord13(dc1, 0, multiply1, 1);
-
+// GUItool: end automatically generated code
 Bounce button0 = Bounce(8, 15);
+
+  int req_noteoff = 0;
 
 void setup() {
   pinMode(8, INPUT_PULLUP);   // This pin triggers the envelope
@@ -79,15 +84,17 @@ void setup() {
   mixer2.gain(0,1);
   mixer2.gain(1,1);
   dc1.amplitude(1);
-  mixer3.gain(0,0.9);
-  mixer3.gain(0,0.5);
+  mixer3.gain(0,0.9); // Dry
+  mixer3.gain(0,0.7); // Reverb
   // Reverb
-  reverb1.reverbTime(0.5);
+  reverb1.reverbTime(3);
   envelope1.attack(200);
   envelope1.release(200);
 }
 
 void loop() {
+
+  
   button0.update();
   // Read the potis
   float value_a7 = (float)analogRead(A7) / 1023;  // Norm to the range from 0 to 1
@@ -98,9 +105,10 @@ void loop() {
   
   float filter_cutoff = value_a7 * 5000;                    // Convert to Hertz (20kHz maximum)
   float filter_reso = value_a6 * 5;                           // TODO Lower Limit of the Reso is 0.7
-                                                              // TODO The Filter amplifies at resos > 0.707. The inpus has to attenuated.
+                                                               // TODO The Filter amplifies at resos > 0.707. The inpus has to attenuated.
                                                               // But at the moment it's OK.
-  float freq1 = value_a3 * 1000;
+  float freq1 = value_a3 * MODULATOR_FREQ_UPPER + MODULATOR_FREQ_LOWER;                  // HINT This is the frequency for the modulating oscillator.
+                                                  // HINT Use ranges from 1Hz up to the audio range.
   float attack1 = value_a2 * 2000;
   float release1 = value_a1 * 2000;
   
@@ -109,21 +117,38 @@ void loop() {
   filter1.resonance(filter_reso);
   waveformMod1.frequency(freq1);
   envelope1.attack(attack1);
+  envelope1.sustain(1);
   envelope1.release(release1);
   // Serial.println(value_a7);
   // delay(1);
 
   if (button0.fallingEdge() ) {
-    envelope1.noteOn();
-    Serial.println("Envelope On");
+      envelope1.noteOn();
+      Serial.println("Envelope On");
   }
-  if (button0.risingEdge() ) {
-    envelope1.noteOff();
-    Serial.println("Envelope Off");
-  }
-  Serial.println(AudioMemoryUsageMax());
-
   
+  if (button0.risingEdge() ) {    // Button is released
+      if(envelope1.isSustain() == false) // env1 is not (yet?) in the sustain phase
+      {
+        Serial.println("Noteoff requested for later");
+        req_noteoff = 1;  // Save the NoteOff for later.
+      }
+      else
+      {
+        Serial.println("Noteoff send");
+        envelope1.noteOff();
+      }
+
+  }
+
+  // Now, check periodically while the envelope is running...
+  if( (req_noteoff == 1) && (envelope1.isSustain() == true) )
+  {
+      Serial.println("Noteoff request fulfilled");
+      envelope1.noteOff();  // Send the NoteOff
+      req_noteoff = 0;      // Delete the note
+  }
+
 // VCO 01
 // waveformMod1 (vco) select waveform
 // waveformMod1 (vco) init freq (master tuning)
