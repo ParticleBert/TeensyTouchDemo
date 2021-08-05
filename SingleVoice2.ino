@@ -6,12 +6,17 @@
 #include <Bounce.h>
 #include <CapacitiveSensor.h>
 
-#define MODULATOR_FREQ_LOWER 5    // This parameter sets the lower frequency (in Hertz) for the modulating oscillator
+#define MODULATOR_FREQ_LOWER 2    // This parameter sets the lower frequency (in Hertz) for the modulating oscillator
 #define MODULATOR_FREQ_UPPER 200  // This parameter sets the upper frequency (in Hertz) for the modulating oscillator
                                   // TODO: What is the exact range of the AudioSynthWaveformModulated class?
 
+// CAUTION: The touch won't work if you route the touch pin through the audio shield!
+// In this example the digital pin 1 has to be clipped so that pin 1 does not touch the audio shield.
+// The grounding of the as renders the touch unsuable.
+// Clip this pin and solder a wire on the top of the teensy 3.2 and put this wire into a vegetable of your choice.
+
 #define TOUCH_TH_BUTTON_LOW		1000 	// Your touch has a certain range. You can find it out by uncommenting the block with the name "Roey" below and 
-#define TOUCH_TH_BUTTON_HIGH	6000  // reading the values when you touch your device.
+#define TOUCH_TH_BUTTON_HIGH	3000  // reading the values when you touch your device.
 #define TOUCH_MAX             12000 // There are three values needed:
                                     // The idle value, when you don't touch it. In my system it is around 900.
                                     // So I take a value a bit above it and place it in the TOUCH_TH_BUTTON_LOW #define.
@@ -22,6 +27,8 @@
 
 #define MAX_ATTACK    2000  // The maximum time for the Attack, in ms.
 #define MAX_RELEASE   2000  // The maximum time for the Release, in ms.
+
+#define MAX_FREQ_FILTER 4000  // The maximum frequency of the filter
 
 int data;
 
@@ -86,7 +93,7 @@ void setup() {
   Serial.begin(9600);
   // Init the CODEC
   sgtl5000_1.enable();
-  sgtl5000_1.volume(0.5);
+  sgtl5000_1.volume(0.6);
   // Audio Memory
   AudioMemory(10);
   amp3.gain(1);
@@ -105,8 +112,8 @@ void setup() {
   mixer2.gain(0,1);
   mixer2.gain(1,1);
   dc1.amplitude(1);
-  mixer3.gain(0,0.9); // Dry
-  mixer3.gain(0,0.7); // Reverb
+  mixer3.gain(0,0.7); // Dry
+  mixer3.gain(1,0.4); // Reverb
   // Reverb
   reverb1.reverbTime(3);
   envelope1.attack(200);
@@ -136,7 +143,7 @@ void loop() {
   float value_a2 = (float)analogRead(A2) / 1023;
   float value_a1 = (float)analogRead(A1) / 1023;
   // Read the touch
-  btn_now = touchRead(1);
+  btn_now = touchRead(1); // This is the touch pin, digital 1. This pin must not touch the audio shield. Clip the header of this pin on the bottom side of the teensy. And solder your touch wire to the top side.
 
   // Calculate the values
   float filter_cutoff = value_a7 * 5000;                    // Convert to Hertz (20kHz maximum)
@@ -150,12 +157,12 @@ void loop() {
 
   float freq2 = (float)btn_now - TOUCH_TH_BUTTON_LOW;          // First, the lowest value must not be lower than the trigger threshold
   freq2 = freq2 / (TOUCH_MAX - TOUCH_TH_BUTTON_LOW) ;  // Scale the remaining from 0 to 1
-  freq2 = freq2 * MODULATOR_FREQ_UPPER + MODULATOR_FREQ_LOWER;
+  freq2 = freq2 * MAX_FREQ_FILTER;
   
   // Set the values
-  filter1.frequency(filter_cutoff);
+  filter1.frequency(freq2); // WAS: filter_cutoff
   filter1.resonance(filter_reso);
-  waveformMod1.frequency(freq2);  // WAS: freq1
+  waveformMod1.frequency(freq1); 
   envelope1.attack(attack1);
   envelope1.sustain(1);
   envelope1.release(release1);
@@ -233,7 +240,7 @@ void loop() {
       req_noteoff = 0;      // Delete the note
   }
   
-  delay(1);
+  // delay(1);
 
 // VCO 01
 // waveformMod1 (vco) select waveform
