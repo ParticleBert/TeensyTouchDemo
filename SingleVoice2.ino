@@ -10,6 +10,19 @@
 #define MODULATOR_FREQ_UPPER 200  // This parameter sets the upper frequency (in Hertz) for the modulating oscillator
                                   // TODO: What is the exact range of the AudioSynthWaveformModulated class?
 
+#define TOUCH_TH_BUTTON_LOW		1000 	// Your touch has a certain range. You can find it out by uncommenting the block with the name "Roey" below and 
+#define TOUCH_TH_BUTTON_HIGH	6000  // reading the values when you touch your device.
+#define TOUCH_MAX             12000 // There are three values needed:
+                                    // The idle value, when you don't touch it. In my system it is around 900.
+                                    // So I take a value a bit above it and place it in the TOUCH_TH_BUTTON_LOW #define.
+                                    // The next value is the maximum. This can be seen if the touch is firmly grasped.
+                                    // Enter this value into TOUCH_MAX.
+                                    // The last value is TOUCH_TH_BUTTON_HIGH, which is a value approx 2-3000 values above TOUCH_TH_BUTTON_LOW.
+                                    // TODO: This can be defined automatically by the preprocessor.
+
+#define MAX_ATTACK    2000  // The maximum time for the Attack, in ms.
+#define MAX_RELEASE   2000  // The maximum time for the Release, in ms.
+
 int data;
 
 // GUItool: begin automatically generated code
@@ -59,8 +72,12 @@ AudioConnection          patchCord13(envelope1, 0, multiply1, 1);
 // GUItool: end automatically generated code
 Bounce button0 = Bounce(8, 15);
 
+  // Global Variables
   int req_noteoff = 0;
-
+  int btn_now = 0, btn_old = 0;
+  int rising_edge = 0, falling_edge = 0;
+  int btn_touch = 0;
+  
 void setup() {
   pinMode(8, INPUT_PULLUP);                   // This pin triggers the envelope
   pinMode(1, INPUT);
@@ -97,11 +114,19 @@ void setup() {
 }
 
 void loop() {
+  
 
-  data = touchRead(1);
+
+
+  
+  /* // Roey: Uncomment this block to see the touch value on the serial console.
   Serial.print("New data: ");
-  Serial.println(data);
+  Serial.println(btn_now);
   delay(1);
+  */
+  
+  
+  
   
   button0.update();
   // Read the potis
@@ -110,26 +135,76 @@ void loop() {
   float value_a3 = (float)analogRead(A3) / 1023;
   float value_a2 = (float)analogRead(A2) / 1023;
   float value_a1 = (float)analogRead(A1) / 1023;
-  
+  // Read the touch
+  btn_now = touchRead(1);
+
+  // Calculate the values
   float filter_cutoff = value_a7 * 5000;                    // Convert to Hertz (20kHz maximum)
   float filter_reso = value_a6 * 5;                           // TODO Lower Limit of the Reso is 0.7
                                                                // TODO The Filter amplifies at resos > 0.707. The inpus has to attenuated.
                                                               // But at the moment it's OK.
   float freq1 = value_a3 * MODULATOR_FREQ_UPPER + MODULATOR_FREQ_LOWER;                  // HINT This is the frequency for the modulating oscillator.
                                                   // HINT Use ranges from 1Hz up to the audio range.
-  float attack1 = value_a2 * 2000;
-  float release1 = value_a1 * 2000;
+  float attack1 = value_a2 * MAX_ATTACK;
+  float release1 = value_a1 * MAX_RELEASE;
+
+  float freq2 = (float)btn_now - TOUCH_TH_BUTTON_LOW;          // First, the lowest value must not be lower than the trigger threshold
+  freq2 = freq2 / (TOUCH_MAX - TOUCH_TH_BUTTON_LOW) ;  // Scale the remaining from 0 to 1
+  freq2 = freq2 * MODULATOR_FREQ_UPPER + MODULATOR_FREQ_LOWER;
   
   // Set the values
   filter1.frequency(filter_cutoff);
   filter1.resonance(filter_reso);
-  waveformMod1.frequency(freq1);
+  waveformMod1.frequency(freq2);  // WAS: freq1
   envelope1.attack(attack1);
   envelope1.sustain(1);
   envelope1.release(release1);
   // Serial.println(value_a7);
   // delay(1);
 
+	if( (btn_old < TOUCH_TH_BUTTON_HIGH) && (btn_now > TOUCH_TH_BUTTON_HIGH) && (btn_touch == 0) )
+	{
+		Serial.print("Rising Edge: ");
+    Serial.println(btn_now);
+    rising_edge = 1;
+    btn_touch = 1;
+	}
+	
+	if( (btn_old > TOUCH_TH_BUTTON_LOW) && (btn_now < TOUCH_TH_BUTTON_LOW) && (btn_touch == 1) )
+	{
+		Serial.print("Falling Edge: ");
+   Serial.println(btn_now);
+    falling_edge = 1;
+    btn_touch = 0;
+	}
+
+  if(rising_edge)
+  {
+    envelope1.noteOn();
+    rising_edge = 0;
+    Serial.println("Lemon-NoteOn");
+    Serial.println(freq2);
+  }
+
+  if(falling_edge)
+  {
+    if(envelope1.isSustain() == false)
+    {
+      Serial.println("Lemon-NoteOff requested for later");
+      req_noteoff = 1;
+    }
+    else
+    {
+      envelope1.noteOff();
+      Serial.println("Lemon-NoteOff sent");
+    }
+    falling_edge = 0;
+  }
+
+  // Save the actual value for the next run
+  btn_old = btn_now;
+
+  /*
   if (button0.fallingEdge() ) {
       envelope1.noteOn();
       Serial.println("Envelope On");
@@ -148,7 +223,8 @@ void loop() {
       }
 
   }
-
+  */
+  
   // Now, check periodically while the envelope is running...
   if( (req_noteoff == 1) && (envelope1.isSustain() == true) )
   {
@@ -156,6 +232,8 @@ void loop() {
       envelope1.noteOff();  // Send the NoteOff
       req_noteoff = 0;      // Delete the note
   }
+  
+  delay(1);
 
 // VCO 01
 // waveformMod1 (vco) select waveform
