@@ -4,10 +4,13 @@
 #include <SD.h>
 #include <SerialFlash.h>
 #include <Bounce.h>
+#include <CapacitiveSensor.h>
 
 #define MODULATOR_FREQ_LOWER 5    // This parameter sets the lower frequency (in Hertz) for the modulating oscillator
 #define MODULATOR_FREQ_UPPER 200  // This parameter sets the upper frequency (in Hertz) for the modulating oscillator
                                   // TODO: What is the exact range of the AudioSynthWaveformModulated class?
+
+int data;
 
 // GUItool: begin automatically generated code
 AudioSynthWaveformModulated waveformMod1;   //xy=165.57147216796875,267.857177734375
@@ -59,7 +62,8 @@ Bounce button0 = Bounce(8, 15);
   int req_noteoff = 0;
 
 void setup() {
-  pinMode(8, INPUT_PULLUP);   // This pin triggers the envelope
+  pinMode(8, INPUT_PULLUP);                   // This pin triggers the envelope
+  pinMode(1, INPUT);
   
   // Init serial
   Serial.begin(9600);
@@ -94,6 +98,10 @@ void setup() {
 
 void loop() {
 
+  data = touchRead(1);
+  Serial.print("New data: ");
+  Serial.println(data);
+  delay(1);
   
   button0.update();
   // Read the potis
